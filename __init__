@@ -1,0 +1,4 @@
+from easystock.config import ENTITY_ID
+from easystock.syncer import Syncer
+self._syncer = Syncer(ENTITY_ID)
+self._syncer.start()
