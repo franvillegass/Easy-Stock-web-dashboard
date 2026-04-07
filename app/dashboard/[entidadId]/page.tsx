@@ -156,7 +156,7 @@ export default function Dashboard({ params }: { params: { entidadId: string } })
                         <div key={j} style={{ fontSize:12, color:'#555', lineHeight:1.6 }}>
                           {String(it.producto)} ×{String(it.cantidad)} — {fmt(it.subtotal)}
                           {Number(it.descuento_item) > 0 && <span style={{ color:'#e67e22' }}> (-{String(it.descuento_item)}%)</span>}
-                          {it.es_oferta && <span style={{ color:'#9b59b6', marginLeft:4 }}>[oferta]</span>}
+                          {Boolean(it.es_oferta) && <span style={{ color:'#9b59b6', marginLeft:4 }}>[oferta]</span>}
                         </div>
                       ))}
                     </td>
