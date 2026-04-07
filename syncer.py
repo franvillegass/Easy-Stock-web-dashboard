@@ -27,7 +27,11 @@ def _req(method: str, path: str, body=None):
             response_data = r.read()
             return json.loads(response_data) if response_data else {}
     except urllib.error.HTTPError as e:
-        print(f"[sync] HTTP {e.code}: {e.read().decode()}")
+        # For 409 conflicts, just return empty
+        if e.code == 409:
+            return {}
+        error_msg = e.read().decode()
+        print(f"[sync] HTTP {e.code}: {error_msg}")
     except Exception as e:
         print(f"[sync] error: {e}")
     return None
@@ -47,21 +51,19 @@ class Syncer:
 
     def _ensure_entidad(self):
         """Ensure entity exists in Supabase"""
-        _req("POST", "entidades?on_conflict=id", {
+        _req("POST", "entidades", {
             "id": self.entidad_id, 
             "nombre": self.entidad_id
         })
 
     def sync_all(self):
-        """Update sync timestamp - this is a placeholder for actual data sync"""
+        """Sync data - placeholder until local DB is configured"""
         try:
-            # Update entidad's last sync time
-            _req("PATCH", f"entidades?id=eq.{self.entidad_id}", {
-                "ultima_sync": datetime.utcnow().isoformat(),
-            })
-            print(f"[sync] ok {datetime.now().strftime('%H:%M:%S')}")
+            # Ensure entity exists (409 errors are silently handled)
+            self._ensure_entidad()
+            print(f"[sync] ✓ {datetime.now().strftime('%H:%M:%S')} - Entity: {self.entidad_id}")
         except Exception as e:
-            print(f"[sync] failed: {e}")
+            print(f"[sync] error: {e}")
         finally:
             self._schedule()
 
