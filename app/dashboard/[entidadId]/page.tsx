@@ -84,7 +84,7 @@ export default function Dashboard({ params }: { params: { entidadId: string } })
         </div>
       )}
 
-      <div style={{ display:'flex', gap:8, marginBottom:20, flexWrap:'wrap' }}>
+      <div style={{ display:'flex', gap:10, marginBottom:20, flexWrap:'wrap', fontSize: 20 }}>
         {['productos', 'ofertas', 'ventas', 'cierres'].map(t => (
           <TabBtn key={t} label={t.charAt(0).toUpperCase() + t.slice(1)} active={tab === t} onClick={() => setTab(t)} />
         ))}
