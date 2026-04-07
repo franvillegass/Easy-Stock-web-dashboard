@@ -8,6 +8,14 @@ import {
 
 type Row = Record<string, unknown>
 
+type VentaItem = {
+  producto: string
+  cantidad: number
+  subtotal: number
+  descuento_item?: number
+  es_oferta?: boolean
+}
+
 // ── Estilos base ─────────────────────────────────────────────────────────────
 const card: React.CSSProperties = {
   background: '#fff', borderRadius: 10, padding: 20,
@@ -64,10 +72,11 @@ function StatsPanel({ ventas }: { ventas: Row[] }) {
   // Todos los items de todas las ventas
   const allItems = useMemo(() =>
     ventas.flatMap(v => {
-      const items = (v.venta_items as Row[]) || []
+      const items = (v.venta_items as VentaItem[]) || []
       return items.map(it => ({ ...it, fecha: v.fecha, venta_total: v.total }))
     }),
-  [ventas])
+  [ventas]) as (VentaItem & { fecha: unknown; venta_total: unknown })[]
+
 
   // Lista de productos con ventas
   const productosConVentas = useMemo(() => {
@@ -271,7 +280,7 @@ function StatsPanel({ ventas }: { ventas: Row[] }) {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#ebebeb" />
                 <XAxis dataKey="periodo" tick={{ fontSize: 10, fill: '#aaa' }} />
-                <YAxis tick={{ fontSize: 10, fill: '#aaa' }} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+                <YAxis tick={{ fontSize: 10, fill: '#aaa' }} tickFormatter={(v: number) => `$${(v/1000).toFixed(0)}k`} />
                 <Tooltip content={<MoneyTooltip />} />
                 <Area type="monotone" dataKey="ingresos" name="Ingresos" stroke={AMBER} fill="url(#gradIng)" strokeWidth={2} dot={{ r: 3, fill: AMBER }} />
               </AreaChart>
@@ -309,7 +318,7 @@ function StatsPanel({ ventas }: { ventas: Row[] }) {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#ebebeb" />
                 <XAxis dataKey="dia" tick={{ fontSize: 9, fill: '#aaa' }} interval={4} />
-                <YAxis tick={{ fontSize: 10, fill: '#aaa' }} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+                <YAxis tick={{ fontSize: 10, fill: '#aaa' }} tickFormatter={(v: number) => `$${(v/1000).toFixed(0)}k`} />
                 <Tooltip content={<MoneyTooltip />} />
                 <Area type="monotone" dataKey="ingresos" name="Ingresos" stroke={GREEN} fill="url(#grad30d)" strokeWidth={2} dot={{ r: 2.5, fill: GREEN }} />
               </AreaChart>
@@ -332,7 +341,7 @@ function StatsPanel({ ventas }: { ventas: Row[] }) {
                 margin={{ top: 4, right: 60, left: 0, bottom: 0 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#ebebeb" horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 9, fill: '#aaa' }} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+                <XAxis type="number" tick={{ fontSize: 9, fill: '#aaa' }} tickFormatter={(v: number) => `$${(v/1000).toFixed(0)}k`} />
                 <YAxis type="category" dataKey="nombre" tick={{ fontSize: 10, fill: '#555' }} width={90} />
                 <Tooltip content={<MoneyTooltip />} />
                 <Bar dataKey="ingresos" name="Ingresos" radius={[0, 3, 3, 0]}>
