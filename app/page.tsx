@@ -24,7 +24,7 @@ export default function Home() {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'100vh', gap:12, background:'#f7f7f7' }}>
-      <h1 style={{ fontSize:30, fontWeight:800, margin:0, letterSpacing:-1 }}>EasyStock</h1>
+      <h1 style={{ fontSize:40, fontWeight:800, margin:0, letterSpacing:-1 }}>EasyStock | Mira el panel de tu negocio desde cualquier lugar!</h1>
       <p style={{ color:'#666', margin:0, fontSize:14 }}>Ingresá el ID de tu programa para acceder al panel</p>
       <input
         value={id}

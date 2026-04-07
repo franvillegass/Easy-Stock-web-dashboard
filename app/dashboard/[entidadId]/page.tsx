@@ -31,6 +31,7 @@ export default function Dashboard({ params }: { params: { entidadId: string } })
   const [ventas, setVentas]         = useState<Row[]>([])
   const [cierres, setCierres]       = useState<Row[]>([])
   const [loading, setLoading]       = useState(false)
+  
 
   useEffect(() => {
     supabase.from('sucursales').select('*').eq('entidad_id', entidadId).then(({ data }) => {
@@ -85,12 +86,33 @@ export default function Dashboard({ params }: { params: { entidadId: string } })
       )}
 
       <div style={{ display:'flex', gap:10, marginBottom:20, flexWrap:'wrap' }}>
-        {['productos', 'ofertas', 'ventas', 'cierres'].map(t => (
+        {['productos', 'ofertas', 'ventas', 'cierres', 'estadisticas'].map(t => (
           <TabBtn key={t} label={t.charAt(0).toUpperCase() + t.slice(1)} active={tab === t} onClick={() => setTab(t)} />
         ))}
       </div>
 
       {loading && <p style={{ color:'#aaa', textAlign:'center', padding:40 }}>Cargando...</p>}
+
+      {!loading && tab === 'estadisticas' && (
+        <div style={card}>
+          <p style={{ margin:'0 0 12px', fontWeight:700, fontSize:16 }}>estadisticas <span style={{ fontWeight:400, color:'#aaa', fontSize:13 }}>({estadisticas.length})</span></p>
+          <table style={tbl}>
+            <thead>
+              <tr><th style={th}>Nombre</th><th style={th}>Stock</th><th style={th}>Precio</th><th style={th}>Código</th></tr>
+            </thead>
+            <tbody>
+              {estadisticas.map((p, i) => (
+                <tr key={i}>
+                  <td style={td}>{String(p.nombre)}</td>
+                  <td style={td}><Badge label={String(p.stock)} color={Number(p.stock) <= 0 ? '#e74c3c' : Number(p.stock) <= 5 ? '#f39c12' : '#27ae60'} /></td>
+                  <td style={td}>{fmt(p.precio)}</td>
+                  <td style={{ ...td, color:'#aaa' }}>{String(p.codigo_barras || '—')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {!loading && tab === 'productos' && (
         <div style={card}>
