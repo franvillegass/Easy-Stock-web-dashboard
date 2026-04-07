@@ -442,6 +442,7 @@ export default function Dashboard({ params }: { params: { entidadId: string } })
   const [ventas, setVentas]         = useState<Row[]>([])
   const [cierres, setCierres]       = useState<Row[]>([])
   const [loading, setLoading]       = useState(false)
+  const [lastSync, setLastSync]     = useState<Date | null>(null)
 
   useEffect(() => {
     supabase.from('sucursales').select('*').eq('entidad_id', entidadId).then(({ data }) => {
@@ -451,6 +452,7 @@ export default function Dashboard({ params }: { params: { entidadId: string } })
 
   // Función para refetch datos - memoizada con useCallback
   const fetchData = useCallback(async (currentSelSuc: string) => {
+    console.log(`[fetch] Sincronizando datos de ${currentSelSuc} a las ${new Date().toLocaleTimeString()}`)
     const [p, o, v, c] = await Promise.all([
       supabase.from('productos').select('*').eq('sucursal_id', currentSelSuc).order('nombre'),
       supabase.from('ofertas').select('*').eq('sucursal_id', currentSelSuc).order('activa', { ascending: false }),
@@ -461,6 +463,7 @@ export default function Dashboard({ params }: { params: { entidadId: string } })
     setOfertas(o.data as Row[] || [])
     setVentas(v.data as Row[] || [])
     setCierres(c.data as Row[] || [])
+    setLastSync(new Date())
   }, [])
 
   // Carga inicial
@@ -499,7 +502,7 @@ export default function Dashboard({ params }: { params: { entidadId: string } })
           <div style={{ textAlign: 'right' }}>
             <p style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>{String(suc.nombre)}</p>
             <p style={{ margin: 0, fontSize: 14, color: '#aaa' }}>
-              Última sync: {suc.ultima_sync ? fdate(suc.ultima_sync) : '—'}
+              Última actualización: {lastSync ? lastSync.toLocaleTimeString('es-AR') : 'Cargando...'}
             </p>
           </div>
         )}
