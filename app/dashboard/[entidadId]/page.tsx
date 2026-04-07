@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis,
@@ -449,8 +449,8 @@ export default function Dashboard({ params }: { params: { entidadId: string } })
     })
   }, [entidadId])
 
-  // Función para refetch datos
-  const fetchData = async (currentSelSuc: string) => {
+  // Función para refetch datos - memoizada con useCallback
+  const fetchData = useCallback(async (currentSelSuc: string) => {
     const [p, o, v, c] = await Promise.all([
       supabase.from('productos').select('*').eq('sucursal_id', currentSelSuc).order('nombre'),
       supabase.from('ofertas').select('*').eq('sucursal_id', currentSelSuc).order('activa', { ascending: false }),
@@ -461,23 +461,28 @@ export default function Dashboard({ params }: { params: { entidadId: string } })
     setOfertas(o.data as Row[] || [])
     setVentas(v.data as Row[] || [])
     setCierres(c.data as Row[] || [])
-  }
+  }, [])
 
   // Carga inicial
   useEffect(() => {
     if (!selSuc) return
     setLoading(true)
     fetchData(selSuc).then(() => setLoading(false))
-  }, [selSuc])
+  }, [selSuc, fetchData])
 
-  // Polling cada 30 segundos
+  // Polling cada 30 segundos - MANTENER ACTIVO
   useEffect(() => {
     if (!selSuc) return
+    
     const interval = setInterval(() => {
+      console.log('[polling] Sincronizando...', new Date().toLocaleTimeString())
       fetchData(selSuc)
     }, 30000)
-    return () => clearInterval(interval)
-  }, [selSuc])
+    
+    return () => {
+      clearInterval(interval)
+    }
+  }, [selSuc, fetchData])
 
   const suc = sucursales.find(s => s.id === selSuc)
   const fmt = (n: unknown) => `$${Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2 })}`
