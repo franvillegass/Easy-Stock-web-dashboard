@@ -449,21 +449,34 @@ export default function Dashboard({ params }: { params: { entidadId: string } })
     })
   }, [entidadId])
 
+  // Función para refetch datos
+  const fetchData = async (currentSelSuc: string) => {
+    const [p, o, v, c] = await Promise.all([
+      supabase.from('productos').select('*').eq('sucursal_id', currentSelSuc).order('nombre'),
+      supabase.from('ofertas').select('*').eq('sucursal_id', currentSelSuc).order('activa', { ascending: false }),
+      supabase.from('ventas').select('*, venta_items(*)').eq('sucursal_id', currentSelSuc).order('fecha', { ascending: false }),
+      supabase.from('cierres_caja').select('*').eq('sucursal_id', currentSelSuc).order('fecha_cierre', { ascending: false }),
+    ])
+    setProductos(p.data as Row[] || [])
+    setOfertas(o.data as Row[] || [])
+    setVentas(v.data as Row[] || [])
+    setCierres(c.data as Row[] || [])
+  }
+
+  // Carga inicial
   useEffect(() => {
     if (!selSuc) return
     setLoading(true)
-    Promise.all([
-      supabase.from('productos').select('*').eq('sucursal_id', selSuc).order('nombre'),
-      supabase.from('ofertas').select('*').eq('sucursal_id', selSuc).order('activa', { ascending: false }),
-      supabase.from('ventas').select('*, venta_items(*)').eq('sucursal_id', selSuc).order('fecha', { ascending: false }),
-      supabase.from('cierres_caja').select('*').eq('sucursal_id', selSuc).order('fecha_cierre', { ascending: false }),
-    ]).then(([p, o, v, c]) => {
-      setProductos(p.data as Row[] || [])
-      setOfertas(o.data as Row[] || [])
-      setVentas(v.data as Row[] || [])
-      setCierres(c.data as Row[] || [])
-      setLoading(false)
-    })
+    fetchData(selSuc).then(() => setLoading(false))
+  }, [selSuc])
+
+  // Polling cada 30 segundos
+  useEffect(() => {
+    if (!selSuc) return
+    const interval = setInterval(() => {
+      fetchData(selSuc)
+    }, 30000)
+    return () => clearInterval(interval)
   }, [selSuc])
 
   const suc = sucursales.find(s => s.id === selSuc)
@@ -610,6 +623,90 @@ export default function Dashboard({ params }: { params: { entidadId: string } })
           </table>
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Componente principal Page ─────────────────────────────────────────────────
+export default function Page({ params }: { params: { entidadId: string } }) {
+  const { entidadId } = params
+  const [ventas, setVentas] = useState<Row[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Función para cargar todas las ventas con sus items
+  const fetchVentas = async () => {
+    try {
+      setLoading(true)
+      
+      // Obtener todas las ventas de la sucursal
+      const { data: ventasData, error: ventasError } = await supabase
+        .from('ventas')
+        .select('*')
+        .eq('sucursal_id', entidadId)
+        .order('fecha', { ascending: false })
+      
+      if (ventasError) throw ventasError
+      
+      // Obtener todos los items de venta asociados
+      const ventasIds = (ventasData as Row[] || []).map(v => String(v.id))
+      if (ventasIds.length === 0) {
+        setVentas([])
+        return
+      }
+
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('venta_items')
+        .select('*')
+        .in('venta_id', ventasIds)
+      
+      if (itemsError) throw itemsError
+
+      // Agrupar items por venta
+      const itemsByVentaId = new Map<string, Row[]>()
+      ;(itemsData as Row[] || []).forEach(item => {
+        const ventaId = String(item.venta_id)
+        if (!itemsByVentaId.has(ventaId)) {
+          itemsByVentaId.set(ventaId, [])
+        }
+        itemsByVentaId.get(ventaId)!.push(item)
+      })
+
+      // Combinar ventas con sus items
+      const ventasCompletas = (ventasData as Row[] || []).map(venta => ({
+        ...venta,
+        venta_items: itemsByVentaId.get(String(venta.id)) || [],
+      }))
+
+      setVentas(ventasCompletas)
+    } catch (error) {
+      console.error('[Dashboard] Error loading ventas:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Cargar datos al montar
+  useEffect(() => {
+    fetchVentas()
+  }, [entidadId])
+
+  // Poll cada 30 segundos
+  useEffect(() => {
+    const interval = setInterval(fetchVentas, 30000)
+    return () => clearInterval(interval)
+  }, [entidadId])
+
+  if (loading && ventas.length === 0) {
+    return (
+      <div style={{ padding: 20, textAlign: 'center', color: '#aaa' }}>
+        Cargando datos...
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ padding: 20, paddingTop: 0 }}>
+      <StatsPanel ventas={ventas} />
     </div>
   )
 }
