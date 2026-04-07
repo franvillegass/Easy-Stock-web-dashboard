@@ -63,13 +63,13 @@ export default function Dashboard({ params }: { params: { entidadId: string } })
     <div style={{ maxWidth:1100, margin:'0 auto', padding:'28px 16px' }}>
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:24, flexWrap:'wrap', gap:8 }}>
         <div>
-          <h1 style={{ margin:0, fontSize:26, fontWeight:800, letterSpacing:-1 }}>EasyStock</h1>
+          <h1 style={{ margin:0, fontSize:35, fontWeight:800, letterSpacing:-1 }}>EasyStock</h1>
           <p style={{ margin:'2px 0 0', color:'#aaa', fontSize:12 }}>ID: {entidadId}</p>
         </div>
         {suc && (
           <div style={{ textAlign:'right' }}>
-            <p style={{ margin:0, fontSize:13, fontWeight:600 }}>{String(suc.nombre)}</p>
-            <p style={{ margin:0, fontSize:11, color:'#aaa' }}>
+            <p style={{ margin:0, fontSize:17, fontWeight:600 }}>{String(suc.nombre)}</p>
+            <p style={{ margin:0, fontSize:14, color:'#aaa' }}>
               Última sync: {suc.ultima_sync ? fdate(suc.ultima_sync) : '—'}
             </p>
           </div>
@@ -84,7 +84,7 @@ export default function Dashboard({ params }: { params: { entidadId: string } })
         </div>
       )}
 
-      <div style={{ display:'flex', gap:10, marginBottom:20, flexWrap:'wrap', fontSize: 20 }}>
+      <div style={{ display:'flex', gap:10, marginBottom:20, flexWrap:'wrap' }}>
         {['productos', 'ofertas', 'ventas', 'cierres'].map(t => (
           <TabBtn key={t} label={t.charAt(0).toUpperCase() + t.slice(1)} active={tab === t} onClick={() => setTab(t)} />
         ))}
