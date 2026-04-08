@@ -473,14 +473,14 @@ export default function Dashboard({ params }: { params: { entidadId: string } })
     fetchData(selSuc).then(() => setLoading(false))
   }, [selSuc, fetchData])
 
-  // Polling cada 30 segundos - MANTENER ACTIVO
+  // Polling cada 60 segundos - MANTENER ACTIVO
   useEffect(() => {
     if (!selSuc) return
     
     const interval = setInterval(() => {
       console.log('[polling] Sincronizando...', new Date().toLocaleTimeString())
       fetchData(selSuc)
-    }, 30000)
+    }, 60000)
     
     return () => {
       clearInterval(interval)
