@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+import { NotificationProvider } from '../components/notifications/NotificationContext'
+import NotificationContainer from '../components/notifications/NotificationContainer'
 
 export const metadata: Metadata = {
   title: 'EasyStock Dashboard',
@@ -9,7 +11,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <body style={{ margin: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', background: '#f7f7f7', color: '#111' }}>
-        {children}
+        <NotificationProvider>
+          {children}
+          <NotificationContainer />
+        </NotificationProvider>
       </body>
     </html>
   )
