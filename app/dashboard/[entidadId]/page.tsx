@@ -480,6 +480,8 @@ export default function Dashboard({ params }: { params: { entidadId: string } })
       const prevO = prevOfertas.current   ?? []
       const prevV = prevVentas.current    ?? []
       const prevC = prevCierres.current   ?? []
+      const nuevas = newVentas.filter(r => !prevV.find(pr => pr.id === r.id))
+      console.log('[notif] ventas nuevas detectadas:', nuevas.length, isFirstFetch.current)
 
       // Productos nuevos
       newProductos
