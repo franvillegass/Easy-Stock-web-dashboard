@@ -1,6 +1,7 @@
 'use client'
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
+import { useNotifications } from '@/components/notifications/NotificationContext'
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, ResponsiveContainer,
@@ -434,6 +435,8 @@ function StatsPanel({ ventas }: { ventas: Row[] }) {
 // ── Dashboard principal ───────────────────────────────────────────────────────
 export default function Dashboard({ params }: { params: { entidadId: string } }) {
   const { entidadId } = params
+  const { addNotification } = useNotifications()
+
   const [sucursales, setSucursales] = useState<Row[]>([])
   const [selSuc, setSelSuc]         = useState<string | null>(null)
   const [tab, setTab]               = useState('productos')
@@ -443,6 +446,12 @@ export default function Dashboard({ params }: { params: { entidadId: string } })
   const [cierres, setCierres]       = useState<Row[]>([])
   const [loading, setLoading]       = useState(false)
   const [lastSync, setLastSync]     = useState<Date | null>(null)
+
+  const prevProductos  = useRef<Row[] | null>(null)
+  const prevOfertas    = useRef<Row[] | null>(null)
+  const prevVentas     = useRef<Row[] | null>(null)
+  const prevCierres    = useRef<Row[] | null>(null)
+  const isFirstFetch   = useRef(true)
 
   useEffect(() => {
     supabase.from('sucursales').select('*').eq('entidad_id', entidadId).then(({ data }) => {
@@ -459,28 +468,106 @@ export default function Dashboard({ params }: { params: { entidadId: string } })
       supabase.from('ventas').select('*, venta_items(*)').eq('sucursal_id', currentSelSuc).order('fecha', { ascending: false }),
       supabase.from('cierres_caja').select('*').eq('sucursal_id', currentSelSuc).order('fecha_cierre', { ascending: false }),
     ])
-    setProductos(p.data as Row[] || [])
-    setOfertas(o.data as Row[] || [])
-    setVentas(v.data as Row[] || [])
-    setCierres(c.data as Row[] || [])
+
+    const newProductos = p.data as Row[] || []
+    const newOfertas   = o.data as Row[] || []
+    const newVentas    = v.data as Row[] || []
+    const newCierres   = c.data as Row[] || []
+
+    // Detectar cambios solo en polls (no en la carga inicial)
+    if (!isFirstFetch.current) {
+      const prevP = prevProductos.current ?? []
+      const prevO = prevOfertas.current   ?? []
+      const prevV = prevVentas.current    ?? []
+      const prevC = prevCierres.current   ?? []
+
+      // Productos nuevos
+      newProductos
+        .filter(r => !prevP.find(pr => pr.id === r.id))
+        .forEach(r => addNotification('product_added', { productName: String(r.nombre) }))
+
+      // Productos eliminados
+      prevP
+        .filter(r => !newProductos.find(nr => nr.id === r.id))
+        .forEach(r => addNotification('product_removed', { productName: String(r.nombre) }))
+
+      // Productos editados (nombre, stock o precio cambiaron)
+      newProductos.forEach(np => {
+        const op = prevP.find(r => r.id === np.id)
+        if (!op) return
+        const changes: { field: string; before: string; after: string }[] = []
+        if (op.nombre !== np.nombre)
+          changes.push({ field: 'Nombre', before: String(op.nombre), after: String(np.nombre) })
+        if (op.stock !== np.stock)
+          changes.push({ field: 'Stock', before: String(op.stock), after: String(np.stock) })
+        if (op.precio !== np.precio)
+          changes.push({ field: 'Precio', before: String(op.precio), after: String(np.precio) })
+        if (changes.length)
+          addNotification('product_edited', { productName: String(np.nombre), changes })
+      })
+
+      // Ofertas nuevas
+      newOfertas
+        .filter(r => !prevO.find(pr => pr.id === r.id))
+        .forEach(r => addNotification('offer_created', {
+          name: String(r.nombre),
+          products: [],
+          expiryDate: r.expira_at
+            ? new Date(String(r.expira_at)).toLocaleDateString('es-AR')
+            : 'Sin vencimiento',
+        }))
+
+      // Ofertas expiradas (estaban y ya no están)
+      prevO
+        .filter(r => !newOfertas.find(nr => nr.id === r.id))
+        .forEach(r => addNotification('offer_expired', { name: String(r.nombre), salesCount: 0 }))
+
+      // Ventas nuevas
+      newVentas
+        .filter(r => !prevV.find(pr => pr.id === r.id))
+        .forEach(r => {
+          const items = (r.venta_items as Row[]) || []
+          addNotification('sale', {
+            total: Number(r.total),
+            products: items.map(it => ({ name: String(it.producto), quantity: Number(it.cantidad) })),
+          })
+        })
+
+      // Cierre nuevo
+      newCierres
+        .filter(r => !prevC.find(pr => pr.id === r.id))
+        .forEach(() => addNotification('cash_closed', {}))
+    }
+
+    prevProductos.current = newProductos
+    prevOfertas.current   = newOfertas
+    prevVentas.current    = newVentas
+    prevCierres.current   = newCierres
+    isFirstFetch.current  = false
+
+    setProductos(newProductos)
+    setOfertas(newOfertas)
+    setVentas(newVentas)
+    setCierres(newCierres)
     setLastSync(new Date())
-  }, [])
+  }, [addNotification])
 
   // Carga inicial
   useEffect(() => {
     if (!selSuc) return
+    isFirstFetch.current = true
     setLoading(true)
     fetchData(selSuc).then(() => setLoading(false))
   }, [selSuc, fetchData])
 
-  // Polling cada 60 segundos - MANTENER ACTIVO
+  // Polling cada 15 segundos
   useEffect(() => {
     if (!selSuc) return
     
     const interval = setInterval(() => {
       console.log('[polling] Sincronizando...', new Date().toLocaleTimeString())
       fetchData(selSuc)
-    }, 60000)
+    }, 15000)
     
     return () => {
       clearInterval(interval)
@@ -634,4 +721,3 @@ export default function Dashboard({ params }: { params: { entidadId: string } })
     </div>
   )
 }
-
