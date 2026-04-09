@@ -1,6 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+
+const STORAGE_KEY = 'easyStockNotifications';
 
 export type NotificationType =
   | 'product_added'
@@ -32,6 +34,7 @@ interface NotificationContextType {
   notifications: Notification[];
   addNotification: <T extends NotificationType>(type: T, data: NotificationData[T]) => void;
   removeNotification: (id: string) => void;
+  clearNotifications: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -44,11 +47,30 @@ export const useNotifications = () => {
   return context;
 };
 
+const loadNotifications = (): Notification[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const item = sessionStorage.getItem(STORAGE_KEY);
+    return item ? (JSON.parse(item) as Notification[]) : [];
+  } catch {
+    return [];
+  }
+};
+
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
+  useEffect(() => {
+    setNotifications(loadNotifications());
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
+  }, [notifications]);
+
   const addNotification = <T extends NotificationType>(type: T, data: NotificationData[T]) => {
-    const id = Date.now().toString();
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const notification: Notification<T> = {
       id,
       type,
@@ -56,16 +78,18 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       timestamp: Date.now(),
     };
     setNotifications(prev => [...prev, notification]);
-    // Auto-remove after 5 seconds
-    setTimeout(() => removeNotification(id), 5000);
   };
 
   const removeNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
+  const clearNotifications = () => {
+    setNotifications([]);
+  };
+
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, removeNotification }}>
+    <NotificationContext.Provider value={{ notifications, addNotification, removeNotification, clearNotifications }}>
       {children}
     </NotificationContext.Provider>
   );

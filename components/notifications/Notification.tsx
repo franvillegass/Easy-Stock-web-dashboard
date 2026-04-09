@@ -66,23 +66,40 @@ const NotificationComponent: React.FC<NotificationComponentProps> = ({ notificat
   return (
     <div
       style={{
-        position: 'fixed',
-        top: '20px',
-        left: '50%',
-        transform: 'translateX(-50%)',
+        position: 'relative',
+        width: '100%',
         backgroundColor: '#4CAF50', // Verde
         color: 'white',
         padding: '15px 20px',
         borderRadius: '50px', // Muy redondeado, casi circular
         boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-        zIndex: 1000,
-        maxWidth: '90%',
-        textAlign: 'center',
+        maxWidth: '100%',
+        textAlign: 'left',
         fontSize: '14px',
-        cursor: 'pointer',
       }}
-      onClick={() => onClose(notification.id)}
     >
+      <button
+        onClick={(event) => {
+          event.stopPropagation();
+          onClose(notification.id);
+        }}
+        style={{
+          position: 'absolute',
+          top: '8px',
+          right: '12px',
+          border: 'none',
+          background: 'rgba(255,255,255,0.25)',
+          color: 'white',
+          width: '24px',
+          height: '24px',
+          borderRadius: '50%',
+          cursor: 'pointer',
+          fontWeight: '700',
+          lineHeight: '18px',
+        }}
+      >
+        ×
+      </button>
       {renderContent()}
     </div>
   );
